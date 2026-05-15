@@ -1,0 +1,50 @@
+---
+description: SSO-first repo — Azure Entra OIDC, fe-1/be-1-django, fe-2/be-2-fastapi, admin/user RBAC
+alwaysApply: true
+---
+
+# Project context — sso-azure-odic
+
+## Focus
+
+- **Primary goal: SSO** with **Azure Entra ID** via **OpenID Connect** (authorization code flow). Do not expand scope into unrelated enterprise features unless asked.
+- **RBAC is minimal**: exactly two app roles — **`admin`** and **`user`**. Map from Entra (groups or app roles) into these two; keep checks simple and consistent across backends.
+
+## Repo layout (wiring)
+
+| Folder        | Role                                      |
+| ------------- | ----------------------------------------- |
+| **`fe-1`**    | Frontend; talks to **`be-1-django`** only |
+| **`fe-2`**    | Frontend; talks to **`be-2-fastapi`** only |
+| **`be-1-django`** | Django (+ DRF as needed): OIDC RP, session/cookies, protected APIs for fe-1 |
+| **`be-2-fastapi`** | FastAPI: trust same Entra identity (e.g. Bearer JWT validation) for APIs used by fe-2 |
+
+Cross-app **SSO** means one login experience where both stacks can recognize the same Entra user (shared IdP; implement with cookies/JWT as you standardize in code — document the chosen pattern).
+
+## What to implement vs defer
+
+- **In scope**: login with Microsoft, OIDC callback, optional auto-provision local user record, store stable **`azure_oid`**, unusable local password if using Django `User`, **admin** / **user** assignment, protected routes/APIs, env-based Azure config.
+- **Out of scope unless requested**: multi-tenant company models, Bidopt or external DB mocks, complex group naming schemes beyond mapping to **admin** / **user**.
+
+## Agent defaults
+
+- Respect folder boundaries: **fe-1 ↔ be-1-django**, **fe-2 ↔ be-2-fastapi**.
+- Call out **redirect URIs**, **CORS**, **token/session** handoff when touching auth.
+- Match each backend’s existing stack and tooling; run that service’s tests/lint when present.
+
+## Session strategy
+
+- `be-1-django` uses Redis-backed server-side sessions after successful Azure OIDC login.
+- Browser stores only the session cookie.
+- Session data is stored in Redis.
+- Redis enables:
+  - shared sessions across Django instances
+  - scalable session storage
+  - centralized logout/session invalidation
+  - session expiration handling
+
+- `be-2-fastapi` primarily validates Azure-issued Bearer JWTs directly.
+
+This mini project intentionally demonstrates two common enterprise patterns:
+1. Session-based auth (Django)
+2. Stateless JWT validation (FastAPI)
