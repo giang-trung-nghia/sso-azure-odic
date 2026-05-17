@@ -1,7 +1,8 @@
 """
-Django settings for app project.
+Django settings for `be-1-django`.
 
-Infrastructure-focused: PostgreSQL, Redis-backed sessions (no OIDC/auth yet).
+Infra: PostgreSQL + Redis-backed sessions.
+Auth: optional Microsoft Entra ID OIDC via mozilla-django-oidc (see `OIDC_ENABLED`).
 """
 
 import os
@@ -20,7 +21,13 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 
 ALLOWED_HOSTS = _csv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,be-1-django")
 
-INSTALLED_APPS = [
+# --- Microsoft Entra ID (Azure AD) OIDC ---
+AZURE_AD_TENANT_ID = os.environ.get("AZURE_AD_TENANT_ID", "").strip()
+AZURE_AD_CLIENT_ID = os.environ.get("AZURE_AD_CLIENT_ID", "").strip()
+AZURE_AD_CLIENT_SECRET = os.environ.get("AZURE_AD_CLIENT_SECRET", "").strip()
+OIDC_ENABLED = bool(AZURE_AD_TENANT_ID and AZURE_AD_CLIENT_ID and AZURE_AD_CLIENT_SECRET)
+
+_INSTALLED_CORE = [
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -30,6 +37,11 @@ INSTALLED_APPS = [
     "corsheaders",
 ]
 
+INSTALLED_APPS = list(_INSTALLED_CORE)
+if OIDC_ENABLED:
+    INSTALLED_APPS += ["mozilla_django_oidc"]
+INSTALLED_APPS += ["accounts"]
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -37,6 +49,11 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+]
+if OIDC_ENABLED:
+    # Periodically re-checks Entra id_token validity (see mozilla-django-oidc docs).
+    MIDDLEWARE += ["mozilla_django_oidc.middleware.SessionRefresh"]
+MIDDLEWARE += [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -122,7 +139,6 @@ else:
             "LOCATION": "unique-snowflake",
         }
     }
-    # Default DB-backed sessions when Redis is not configured (simple local dev).
     SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 
@@ -132,3 +148,101 @@ if _cors:
     CORS_ALLOWED_ORIGINS = _cors
     CORS_ALLOW_CREDENTIALS = True
     CSRF_TRUSTED_ORIGINS = _cors
+
+
+# --- Django auth / login redirects ---
+if OIDC_ENABLED:
+    AUTHENTICATION_BACKENDS = (
+        "accounts.backends.EntraOIDCAuthenticationBackend",
+        "django.contrib.auth.backends.ModelBackend",
+    )
+else:
+    AUTHENTICATION_BACKENDS = ("django.contrib.auth.backends.ModelBackend",)
+
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/accounts/me/"
+LOGIN_REDIRECT_URL_FAILURE = "/accounts/login/?error=1"
+LOGOUT_REDIRECT_URL = os.environ.get(
+    "DJANGO_LOGOUT_REDIRECT_URL",
+    "http://127.0.0.1:5171/",
+)
+
+# Where Entra should send the browser after `/oauth2/v2.0/logout` (must be registered in Entra if required).
+ENTRA_POST_LOGOUT_REDIRECT_URI = os.environ.get("ENTRA_POST_LOGOUT_REDIRECT_URI", "").strip()
+
+# mozilla-django-oidc: allow GET /oidc/logout/ for simple local testing (prefer POST in production).
+ALLOW_LOGOUT_GET_METHOD = os.environ.get("DJANGO_ALLOW_LOGOUT_GET", "1") == "1"
+
+# Safe `next=` targets for /oidc/authenticate/?next=...
+OIDC_REDIRECT_ALLOWED_HOSTS = _csv(
+    "OIDC_REDIRECT_ALLOWED_HOSTS",
+    "127.0.0.1,127.0.0.1:5171,localhost,localhost:5171",
+)
+
+
+if OIDC_ENABLED:
+    OIDC_RP_CLIENT_ID = AZURE_AD_CLIENT_ID
+    OIDC_RP_CLIENT_SECRET = AZURE_AD_CLIENT_SECRET
+
+    OIDC_RP_SIGN_ALGO = "RS256"
+    OIDC_OP_JWKS_ENDPOINT = (
+        f"https://login.microsoftonline.com/{AZURE_AD_TENANT_ID}/discovery/v2.0/keys"
+    )
+    OIDC_OP_AUTHORIZATION_ENDPOINT = (
+        f"https://login.microsoftonline.com/{AZURE_AD_TENANT_ID}/oauth2/v2.0/authorize"
+    )
+    OIDC_OP_TOKEN_ENDPOINT = (
+        f"https://login.microsoftonline.com/{AZURE_AD_TENANT_ID}/oauth2/v2.0/token"
+    )
+    OIDC_OP_USER_ENDPOINT = "https://graph.microsoft.com/oidc/userinfo"
+
+    OIDC_RP_SCOPES = os.environ.get(
+        "OIDC_RP_SCOPES",
+        "openid email profile offline_access",
+    )
+
+    OIDC_USE_NONCE = True
+    OIDC_USE_PKCE = os.environ.get("OIDC_USE_PKCE", "1") == "1"
+
+    OIDC_OP_LOGOUT_URL_METHOD = "accounts.oidc.provider_logout_url"
+
+    # Optional token storage (useful when you later call Microsoft Graph APIs).
+    OIDC_STORE_ACCESS_TOKEN = os.environ.get("OIDC_STORE_ACCESS_TOKEN", "0") == "1"
+    OIDC_STORE_ID_TOKEN = os.environ.get("OIDC_STORE_ID_TOKEN", "0") == "1"
+
+    OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = int(
+        os.environ.get("OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS", str(60 * 15))
+    )
+
+    LOGGING = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+            },
+        },
+        "root": {
+            "handlers": ["console"],
+            "level": "INFO",
+        },
+        "loggers": {
+            "mozilla_django_oidc": {
+                "handlers": ["console"],
+                "level": os.environ.get("OIDC_LOG_LEVEL", "INFO"),
+            },
+        },
+    }
+
+else:
+    LOGGING = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "handlers": {
+            "console": {"class": "logging.StreamHandler"},
+        },
+        "root": {
+            "handlers": ["console"],
+            "level": "INFO",
+        },
+    }

@@ -23,6 +23,8 @@
 
 Infra-only stack (Postgres, Redis, both backends, both frontends): see **[`docs/local-infrastructure.md`](docs/local-infrastructure.md)** for ports, env vars, networking, and why Redis backs Django sessions here.
 
+**Entra OIDC (Django RP)**: **[`docs/entra-django-oidc.md`](docs/entra-django-oidc.md)** — redirect URIs, endpoints, tokens vs sessions, `azure_oid` mapping.
+
 ```bash
 cp .env.example .env   # optional
 docker compose up --build
