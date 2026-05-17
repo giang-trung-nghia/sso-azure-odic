@@ -27,6 +27,8 @@ Infra-only stack (Postgres, Redis, both backends, both frontends): see **[`docs/
 
 **Entra JWT (FastAPI)**: **[`docs/entra-fastapi-jwt.md`](docs/entra-fastapi-jwt.md)** — Bearer flow, JWKS validation, `/me` & `/protected`, vs Django sessions.
 
+**fe-1 (Django session UI)**: **[`docs/fe-1-django-session.md`](docs/fe-1-django-session.md)** — login/logout, `credentials: 'include'`, `/dashboard`.
+
 ```bash
 cp .env.example .env   # optional
 docker compose up --build

@@ -92,6 +92,7 @@ services:
       context: ./fe-1
     environment:
       VITE_PORT: "5171"
+      VITE_API_URL_BE1: ${VITE_API_URL_BE1:-http://127.0.0.1:8001}
     ports:
       - "${FE1_PUBLISH_PORT:-5171}:5171"
     depends_on:

@@ -15,11 +15,18 @@ def login_start(request):
             },
             status=503,
         )
-    return redirect(reverse("oidc_authentication_init"))
+    next_url = request.GET.get("next")
+    target = reverse("oidc_authentication_init")
+    if next_url:
+        return redirect(f"{target}?next={next_url}")
+    return redirect(target)
 
 
-@login_required
 def me(request):
+    """Session auth status for SPA clients (401 JSON instead of redirect)."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"authenticated": False}, status=401)
+
     profile = getattr(request.user, "profile", None)
     return JsonResponse(
         {
