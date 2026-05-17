@@ -25,6 +25,8 @@ Infra-only stack (Postgres, Redis, both backends, both frontends): see **[`docs/
 
 **Entra OIDC (Django RP)**: **[`docs/entra-django-oidc.md`](docs/entra-django-oidc.md)** — redirect URIs, endpoints, tokens vs sessions, `azure_oid` mapping.
 
+**Entra JWT (FastAPI)**: **[`docs/entra-fastapi-jwt.md`](docs/entra-fastapi-jwt.md)** — Bearer flow, JWKS validation, `/me` & `/protected`, vs Django sessions.
+
 ```bash
 cp .env.example .env   # optional
 docker compose up --build
