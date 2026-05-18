@@ -29,6 +29,8 @@ Infra-only stack (Postgres, Redis, both backends, both frontends): see **[`docs/
 
 **fe-1 (Django session UI)**: **[`docs/fe-1-django-session.md`](docs/fe-1-django-session.md)** — login/logout, `credentials: 'include'`, `/dashboard`.
 
+**fe-2 (MSAL + JWT UI)**: **[`docs/fe-2-msal-jwt.md`](docs/fe-2-msal-jwt.md)** — token acquisition, Bearer requests, `/me` & `/protected`.
+
 ```bash
 cp .env.example .env   # optional
 docker compose up --build

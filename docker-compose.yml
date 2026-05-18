@@ -106,6 +106,10 @@ services:
       context: ./fe-2
     environment:
       VITE_PORT: "5172"
+      VITE_API_URL_BE2: ${VITE_API_URL_BE2:-http://127.0.0.1:8002}
+      VITE_AZURE_TENANT_ID: ${AZURE_AD_TENANT_ID:-}
+      VITE_AZURE_CLIENT_ID: ${AZURE_AD_CLIENT_ID:-}
+      VITE_AZURE_API_SCOPE: ${VITE_AZURE_API_SCOPE:-}
     ports:
       - "${FE2_PUBLISH_PORT:-5172}:5172"
     depends_on:
