@@ -15,3 +15,7 @@ export const API_SCOPE =
   (AZURE_CLIENT_ID ? `api://${AZURE_CLIENT_ID}/.default` : '')
 
 export const MSAL_CONFIGURED = Boolean(AZURE_CLIENT_ID && AZURE_TENANT_ID && API_SCOPE)
+
+export const PEER_APP_URL = (
+  import.meta.env.VITE_FE1_URL || 'http://127.0.0.1:5171'
+).replace(/\/$/, '')

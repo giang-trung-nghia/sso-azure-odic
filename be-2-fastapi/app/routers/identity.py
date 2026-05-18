@@ -16,6 +16,9 @@ def me(
     if isinstance(groups, list) and len(groups) > 20:
         groups = {"truncated": True, "sample": groups[:20]}
 
+    exp = claims.raw.get("exp")
+    iat = claims.raw.get("iat")
+
     return {
         "authenticated": True,
         "local": {
@@ -31,6 +34,11 @@ def me(
             "preferred_username": claims.preferred_username,
             "name": claims.name,
             "groups": groups,
+        },
+        "auth": {
+            "mode": "bearer_jwt",
+            "token_exp": exp,
+            "token_iat": iat,
         },
     }
 

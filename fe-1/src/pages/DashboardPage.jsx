@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchMe, startLogin, startLogout } from '../api/django'
+import CrossAppSsoPanel from '../components/CrossAppSsoPanel'
 import { API_BASE } from '../config'
 
 export default function DashboardPage() {
@@ -83,6 +84,8 @@ export default function DashboardPage() {
           Refresh /me
         </button>
       </section>
+
+      <CrossAppSsoPanel azureOid={user.azure_oid} sessionAuth={user.auth} />
 
       <section className="card muted">
         <h2>How this request works</h2>

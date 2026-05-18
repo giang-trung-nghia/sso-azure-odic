@@ -55,6 +55,7 @@ services:
       OIDC_RP_SCOPES: ${OIDC_RP_SCOPES:-openid email profile offline_access}
       OIDC_REDIRECT_ALLOWED_HOSTS: ${OIDC_REDIRECT_ALLOWED_HOSTS:-127.0.0.1,127.0.0.1:5171,localhost,localhost:5171}
       DJANGO_PORT: ${DJANGO_PORT:-8001}
+      DJANGO_SESSION_COOKIE_AGE: ${DJANGO_SESSION_COOKIE_AGE:-1209600}
     ports:
       - "${DJANGO_PUBLISH_PORT:-8001}:8001"
     depends_on:
@@ -93,6 +94,7 @@ services:
     environment:
       VITE_PORT: "5171"
       VITE_API_URL_BE1: ${VITE_API_URL_BE1:-http://127.0.0.1:8001}
+      VITE_FE2_URL: ${VITE_FE2_URL:-http://127.0.0.1:5172}
     ports:
       - "${FE1_PUBLISH_PORT:-5171}:5171"
     depends_on:
@@ -110,6 +112,7 @@ services:
       VITE_AZURE_TENANT_ID: ${AZURE_AD_TENANT_ID:-}
       VITE_AZURE_CLIENT_ID: ${AZURE_AD_CLIENT_ID:-}
       VITE_AZURE_API_SCOPE: ${VITE_AZURE_API_SCOPE:-}
+      VITE_FE1_URL: ${VITE_FE1_URL:-http://127.0.0.1:5171}
     ports:
       - "${FE2_PUBLISH_PORT:-5172}:5172"
     depends_on:

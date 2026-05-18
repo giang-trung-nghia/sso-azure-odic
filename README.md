@@ -31,6 +31,8 @@ Infra-only stack (Postgres, Redis, both backends, both frontends): see **[`docs/
 
 **fe-2 (MSAL + JWT UI)**: **[`docs/fe-2-msal-jwt.md`](docs/fe-2-msal-jwt.md)** — token acquisition, Bearer requests, `/me` & `/protected`.
 
+**Cross-app SSO (test guide)**: **[`docs/cross-app-sso.md`](docs/cross-app-sso.md)** — Entra SSO vs app sessions, manual tests, logout & expiration.
+
 ```bash
 cp .env.example .env   # optional
 docker compose up --build

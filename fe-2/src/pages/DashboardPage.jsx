@@ -4,6 +4,7 @@ import { useIsAuthenticated, useMsal } from '@azure/msal-react'
 import { fetchMe, fetchProtected } from '../api/fastapi'
 import { loginRequest } from '../auth/msal'
 import { useAccessToken } from '../auth/useAccessToken'
+import CrossAppSsoPanel from '../components/CrossAppSsoPanel'
 import { API_BASE } from '../config'
 
 export default function DashboardPage() {
@@ -119,6 +120,11 @@ export default function DashboardPage() {
           Refresh APIs
         </button>
       </section>
+
+      <CrossAppSsoPanel
+        azureOid={me?.local?.azure_oid ?? me?.token_claims?.oid}
+        tokenExp={me?.auth?.token_exp}
+      />
 
       <section className="card muted">
         <h2>How Bearer requests work</h2>

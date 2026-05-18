@@ -107,3 +107,8 @@ button + button {
 code {
   font-size: 0.88em;
 }
+
+.sso-panel {
+  border-color: #c5d4f7;
+  background: #f5f8ff;
+}

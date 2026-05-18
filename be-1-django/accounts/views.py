@@ -28,6 +28,7 @@ def me(request):
         return JsonResponse({"authenticated": False}, status=401)
 
     profile = getattr(request.user, "profile", None)
+    expiry = request.session.get_expiry_date()
     return JsonResponse(
         {
             "authenticated": True,
@@ -35,6 +36,14 @@ def me(request):
             "email": request.user.email,
             "azure_oid": getattr(profile, "azure_oid", None),
             "is_staff": request.user.is_staff,
+            "auth": {
+                "mode": "django_session",
+                "session_key_prefix": request.session.session_key[:8] + "…"
+                if request.session.session_key
+                else None,
+                "session_expires_at": expiry.isoformat() if expiry else None,
+                "session_expires_in_seconds": request.session.get_expiry_age(),
+            },
         }
     )
 

@@ -141,6 +141,10 @@ else:
     }
     SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
+# Session lifetime (seconds). Shorten in .env to test expiration, e.g. 300 = 5 minutes.
+_raw_session_age = os.environ.get("DJANGO_SESSION_COOKIE_AGE", "").strip()
+SESSION_COOKIE_AGE = int(_raw_session_age) if _raw_session_age else 60 * 60 * 24 * 14
+
 
 # --- CORS (browser clients for fe-1 → be-1-django) ---
 _cors = _csv("DJANGO_CORS_ORIGINS", "")
