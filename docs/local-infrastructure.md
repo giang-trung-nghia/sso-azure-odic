@@ -20,17 +20,17 @@ sso-azure-odic/
 
 | Service | URL on your machine | Container port | Notes |
 |--------|---------------------|------------------|--------|
-| **fe-1** | http://127.0.0.1:5171 | 5171 | Vite dev server |
-| **fe-2** | http://127.0.0.1:5172 | 5172 | Vite dev server |
-| **be-1-django** | http://127.0.0.1:8001 | 8001 | Gunicorn |
-| **be-2-fastapi** | http://127.0.0.1:8002 | 8002 | Uvicorn |
+| **fe-1** | http://localhost:5171 | 5171 | Vite dev server |
+| **fe-2** | http://localhost:5172 | 5172 | Vite dev server |
+| **be-1-django** | http://localhost:8001 | 8001 | Gunicorn |
+| **be-2-fastapi** | http://localhost:8002 | 8002 | Uvicorn |
 | **postgres** | `localhost:5433` | 5432 | Host **5433** by default to reduce clashes with a local Postgres on 5432 |
 | **redis** | `localhost:6379` | 6379 | Same port inside and outside by default |
 
 Health endpoints (for probes and manual checks):
 
-- Django: `GET http://127.0.0.1:8001/health/`
-- FastAPI: `GET http://127.0.0.1:8002/health`
+- Django: `GET http://localhost:8001/health/`
+- FastAPI: `GET http://localhost:8002/health`
 
 ## Docker networking
 
@@ -38,7 +38,7 @@ All services attach to the Compose network **`appnet`**. Inside the network, DNS
 
 - `postgres`, `redis`, `be-1-django`, `be-2-fastapi`, `fe-1`, `fe-2`
 
-So from **be-1-django**, the database host is **`postgres`** and Redis is **`redis`** (not `127.0.0.1`). Your **browser** on the host still uses **`127.0.0.1`** (or `localhost`) with the **publish** ports above.
+So from **be-1-django**, the database host is **`postgres`** and Redis is **`redis`** (not `127.0.0.1`). Your **browser** on the host should use **`localhost`** (matches Entra redirect URIs) with the **publish** ports above.
 
 ## Environment variable strategy
 

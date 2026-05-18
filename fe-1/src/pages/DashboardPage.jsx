@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchMe, startLogin, startLogout } from '../api/django'
+import { fetchApiMe, startLogin, startLogout } from '../api/django'
 import CrossAppSsoPanel from '../components/CrossAppSsoPanel'
 import { API_BASE } from '../config'
 
@@ -13,7 +13,7 @@ export default function DashboardPage() {
     setLoading(true)
     setError(null)
     try {
-      const data = await fetchMe()
+      const data = await fetchApiMe()
       if (!data.authenticated) {
         setUser(null)
       } else {
@@ -55,6 +55,8 @@ export default function DashboardPage() {
     )
   }
 
+  const groups = user.groups || []
+
   return (
     <main className="page">
       <header className="row">
@@ -67,7 +69,7 @@ export default function DashboardPage() {
       <p className="ok">Authenticated via Django session cookie.</p>
 
       <section className="card">
-        <h2>Current user (<code>GET /accounts/me/</code>)</h2>
+        <h2>Identity (<code>GET /api/me/</code>)</h2>
         <dl className="kv">
           <dt>username</dt>
           <dd>{user.username}</dd>
@@ -77,12 +79,62 @@ export default function DashboardPage() {
           <dd>
             <code>{user.azure_oid || '—'}</code>
           </dd>
-          <dt>is_staff</dt>
-          <dd>{String(user.is_staff)}</dd>
+          <dt>tenant_id</dt>
+          <dd>
+            <code>{user.tenant_id || '—'}</code>
+          </dd>
+          <dt>display_name</dt>
+          <dd>{user.display_name || '—'}</dd>
+          <dt>last_synced_at</dt>
+          <dd>{user.last_synced_at || '—'}</dd>
         </dl>
         <button type="button" onClick={loadMe}>
-          Refresh /me
+          Refresh /api/me
         </button>
+      </section>
+
+      <section className="card">
+        <h2>
+          Azure groups ({groups.length}) — object IDs + Graph display names
+        </h2>
+        {groups.length === 0 ? (
+          <p className="warn">
+            No groups stored. Add optional <code>groups</code> claim in Entra, grant{' '}
+            <code>GroupMember.Read.All</code>, set <code>OIDC_STORE_ACCESS_TOKEN=1</code>, then
+            log in again.
+          </p>
+        ) : (
+          <table className="groups-table">
+            <thead>
+              <tr>
+                <th>display_name</th>
+                <th>object_id</th>
+                <th>security</th>
+                <th>resolved_at</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groups.map((g) => (
+                <tr key={g.object_id}>
+                  <td>{g.display_name || <em className="muted">(unresolved)</em>}</td>
+                  <td>
+                    <code>{g.object_id}</code>
+                  </td>
+                  <td>{g.security_enabled == null ? '—' : String(g.security_enabled)}</td>
+                  <td className="muted">{g.resolved_at || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <p className="muted">
+          Group object IDs: <code>{user.group_object_ids?.join(', ') || '—'}</code>
+        </p>
+      </section>
+
+      <section className="card muted">
+        <h2>Raw JSON (debug)</h2>
+        <pre className="json">{JSON.stringify(user, null, 2)}</pre>
       </section>
 
       <CrossAppSsoPanel azureOid={user.azure_oid} sessionAuth={user.auth} />
@@ -90,10 +142,10 @@ export default function DashboardPage() {
       <section className="card muted">
         <h2>How this request works</h2>
         <p>
-          <code>fetchMe()</code> calls <code>{API_BASE}/accounts/me/</code> with{' '}
-          <code>credentials: &quot;include&quot;</code>. The browser attaches the{' '}
-          <code>sessionid</code> cookie issued by Django after OIDC login. Django reads
-          session data from Redis and returns JSON — no JWT in the frontend.
+          After login, Django syncs Entra <strong>group GUIDs</strong> from OIDC claims into
+          PostgreSQL, calls <strong>Microsoft Graph</strong> to resolve{' '}
+          <strong>display names</strong>, then <code>GET /api/me/</code> returns everything with{' '}
+          <code>credentials: &quot;include&quot;</code>.
         </p>
       </section>
     </main>

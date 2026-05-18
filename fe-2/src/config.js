@@ -1,6 +1,6 @@
 /** FastAPI base URL — fe-2 talks only to be-2-fastapi. */
 export const API_BASE = (
-  import.meta.env.VITE_API_URL_BE2 || 'http://127.0.0.1:8002'
+  import.meta.env.VITE_API_URL_BE2 || 'http://localhost:8002'
 ).replace(/\/$/, '')
 
 export const AZURE_CLIENT_ID = import.meta.env.VITE_AZURE_CLIENT_ID || ''
@@ -17,5 +17,5 @@ export const API_SCOPE =
 export const MSAL_CONFIGURED = Boolean(AZURE_CLIENT_ID && AZURE_TENANT_ID && API_SCOPE)
 
 export const PEER_APP_URL = (
-  import.meta.env.VITE_FE1_URL || 'http://127.0.0.1:5171'
+  import.meta.env.VITE_FE1_URL || 'http://localhost:5171'
 ).replace(/\/$/, '')

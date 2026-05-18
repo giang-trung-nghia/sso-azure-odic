@@ -29,6 +29,8 @@ Infra-only stack (Postgres, Redis, both backends, both frontends): see **[`docs/
 
 **fe-1 (Django session UI)**: **[`docs/fe-1-django-session.md`](docs/fe-1-django-session.md)** — login/logout, `credentials: 'include'`, `/dashboard`.
 
+**Azure groups + Graph**: **[`docs/azure-groups-graph.md`](docs/azure-groups-graph.md)** — group IDs, Graph resolution, `GET /api/me/`.
+
 **fe-2 (MSAL + JWT UI)**: **[`docs/fe-2-msal-jwt.md`](docs/fe-2-msal-jwt.md)** — token acquisition, Bearer requests, `/me` & `/protected`.
 
 **Cross-app SSO (test guide)**: **[`docs/cross-app-sso.md`](docs/cross-app-sso.md)** — Entra SSO vs app sessions, manual tests, logout & expiration.

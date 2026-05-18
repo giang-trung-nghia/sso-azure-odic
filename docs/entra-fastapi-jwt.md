@@ -7,7 +7,7 @@ This service demonstrates **stateless Bearer JWT** authentication: every protect
 ```text
 Browser (fe-2)
   → obtains Azure access token (MSAL / Entra login in SPA — wired in a later step)
-  → GET http://127.0.0.1:8002/me
+  → GET http://localhost:8002/me
       Header: Authorization: Bearer <access_token>
 
 be-2-fastapi
@@ -78,8 +78,8 @@ Request an access token whose **resource/audience** matches your API app, then c
 az login --tenant "$AZURE_AD_TENANT_ID"
 TOKEN=$(az account get-access-token --resource "$AZURE_AD_CLIENT_ID" --query accessToken -o tsv)
 
-curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8002/me | jq
-curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8002/protected | jq
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8002/me | jq
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8002/protected | jq
 ```
 
 If validation fails with **audience** errors, expose a dedicated API app registration or set `AZURE_AD_API_AUDIENCE` to the `aud` value inside your token (decode at [jwt.ms](https://jwt.ms) for learning).

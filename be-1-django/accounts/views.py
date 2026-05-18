@@ -1,8 +1,12 @@
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.views.decorators.http import require_GET
+
+from accounts.models import AzureUserProfile
+from accounts.serializers import build_api_me_payload
 
 
 def login_start(request):
@@ -22,46 +26,33 @@ def login_start(request):
     return redirect(target)
 
 
-def me(request):
-    """Session auth status for SPA clients (401 JSON instead of redirect)."""
+@require_GET
+def api_me(request):
+    """Full identity + Azure groups for authenticated SPA clients."""
     if not request.user.is_authenticated:
         return JsonResponse({"authenticated": False}, status=401)
+    return JsonResponse(build_api_me_payload(request.user, request))
 
-    profile = getattr(request.user, "profile", None)
-    expiry = request.session.get_expiry_date()
-    return JsonResponse(
-        {
-            "authenticated": True,
-            "username": request.user.username,
-            "email": request.user.email,
-            "azure_oid": getattr(profile, "azure_oid", None),
-            "is_staff": request.user.is_staff,
-            "auth": {
-                "mode": "django_session",
-                "session_key_prefix": request.session.session_key[:8] + "…"
-                if request.session.session_key
-                else None,
-                "session_expires_at": expiry.isoformat() if expiry else None,
-                "session_expires_in_seconds": request.session.get_expiry_age(),
-            },
-        }
-    )
+
+@require_GET
+def me(request):
+    """Legacy endpoint — same payload as /api/me/."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"authenticated": False}, status=401)
+    return JsonResponse(build_api_me_payload(request.user, request))
 
 
 @login_required
+@require_GET
 def claims_inspect(request):
-    """
-    Inspect selected Entra claims last seen at login (session snapshot).
-
-    Full group lists may be omitted by Entra (overage) unless optional claims are configured.
-    """
-    profile = getattr(request.user, "profile", None)
+    """Debug: session snapshot from last OIDC login."""
+    profile = AzureUserProfile.objects.filter(user=request.user).first()
     return JsonResponse(
         {
             "user": {
                 "username": request.user.username,
                 "email": request.user.email,
-                "azure_oid": getattr(profile, "azure_oid", None),
+                "azure_oid": profile.azure_oid if profile else None,
             },
             "session_claims_snapshot": request.session.get("oidc_claims_snapshot"),
             "session_has_access_token": bool(request.session.get("oidc_access_token")),

@@ -9,12 +9,12 @@ Create an **App registration** (single tenant is fine for learning).
 1. **Authentication → Platform configurations → Web**
 2. Add a **Redirect URI** that matches what Django will send to Entra during the code exchange. For local Docker defaults, register:
 
-   `http://127.0.0.1:8001/oidc/callback/`
+   `http://localhost:8001/oidc/callback/`
 
    Notes:
 
-   - The path is **`/oidc/callback/`** (mozilla-django-oidc default).
-   - The scheme/host/port must match what you type in the browser when starting login (including `127.0.0.1` vs `localhost`).
+   - The path is **`/oidc/callback/`** (mozilla-django-oidc default; not `odic`).
+   - Entra commonly accepts **`localhost`** for local redirect URIs; use **`localhost` everywhere** (fe-1, Django API, Entra registration)—do not mix with `127.0.0.1`.
 
 3. Create a **client secret** (Certificates & secrets).
 
@@ -96,5 +96,5 @@ We keep a small `accounts.UserProfile` row keyed by Entra **`oid`** (stored as `
 
 ## Operational notes
 
-- Prefer **`http://127.0.0.1:8001`** consistently (or consistently use `localhost`) so the redirect URI, cookies, and Entra registration all match.
+- Use **`http://localhost:8001`** (and open fe-1 at **`http://localhost:5171`**) so the redirect URI, session cookies, and Entra registration all match.
 - Start login with a **top-level navigation** (a normal link) to avoid third-party cookie issues while iterating locally.

@@ -6,7 +6,8 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import SuspiciousOperation
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend
 
-from accounts.models import UserProfile
+from accounts.models import AzureUserProfile
+from accounts.services.group_sync import sync_user_groups
 
 LOGGER = logging.getLogger(__name__)
 
@@ -15,16 +16,14 @@ class EntraOIDCAuthenticationBackend(OIDCAuthenticationBackend):
     """
     Entra ID (Azure AD) OIDC backend.
 
-    - Matches users by `UserProfile.azure_oid` (stable Entra `oid` claim).
-    - Merges ID token claims with Microsoft Graph `/oidc/userinfo` so `oid` / `tid`
-      are available even when userinfo is sparse.
-    - Forces unusable Django passwords (identity lives in Entra).
+    - Matches users by `AzureUserProfile.azure_oid`.
+    - Merges ID token claims with Microsoft Graph `/oidc/userinfo`.
+    - Syncs group object IDs + Graph-resolved display names to PostgreSQL.
     """
 
     def verify_claims(self, claims) -> bool:
         if not (claims.get("oid") or claims.get("sub")):
             return False
-        # Entra may omit `email` until optional claims / scopes are configured.
         return bool(
             claims.get("email")
             or claims.get("preferred_username")
@@ -43,9 +42,9 @@ class EntraOIDCAuthenticationBackend(OIDCAuthenticationBackend):
         if not oid:
             return self.UserModel.objects.none()
         try:
-            profile = UserProfile.objects.select_related("user").get(azure_oid=oid)
+            profile = AzureUserProfile.objects.select_related("user").get(azure_oid=oid)
             return self.UserModel.objects.filter(pk=profile.user_id)
-        except UserProfile.DoesNotExist:
+        except AzureUserProfile.DoesNotExist:
             return self.UserModel.objects.none()
 
     def create_user(self, claims):
@@ -60,8 +59,13 @@ class EntraOIDCAuthenticationBackend(OIDCAuthenticationBackend):
         user.set_unusable_password()
         user.save()
 
-        UserProfile.objects.create(user=user, azure_oid=oid)
-        self._stash_claims_snapshot(claims)
+        profile = AzureUserProfile.objects.create(
+            user=user,
+            azure_oid=oid,
+            tenant_id=str(claims.get("tid") or ""),
+            email=str(email),
+            display_name=str(claims.get("name") or ""),
+        )
         LOGGER.info("Provisioned Django user for Entra oid=%s", oid)
         return user
 
@@ -73,15 +77,24 @@ class EntraOIDCAuthenticationBackend(OIDCAuthenticationBackend):
         user.save()
 
         oid = claims.get("oid") or claims.get("sub")
-        profile, _created = UserProfile.objects.get_or_create(
+        profile, _created = AzureUserProfile.objects.get_or_create(
             user=user,
-            defaults={"azure_oid": oid or ""},
+            defaults={
+                "azure_oid": oid or "",
+                "tenant_id": str(claims.get("tid") or ""),
+                "email": str(email or user.email or "")[:254],
+                "display_name": str(claims.get("name") or ""),
+            },
         )
         if oid and profile.azure_oid != oid:
             profile.azure_oid = oid
-            profile.save()
-
-        self._stash_claims_snapshot(claims)
+        profile.tenant_id = str(claims.get("tid") or profile.tenant_id)
+        if email:
+            profile.email = str(email)[:254]
+        name = claims.get("name")
+        if name:
+            profile.display_name = str(name)[:255]
+        profile.save()
         return user
 
     def get_or_create_user(self, access_token, id_token, payload):
@@ -96,21 +109,28 @@ class EntraOIDCAuthenticationBackend(OIDCAuthenticationBackend):
 
         users = self.filter_users_by_claims(merged)
         if len(users) == 1:
-            return self.update_user(users[0], merged)
-        if len(users) > 1:
+            user = self.update_user(users[0], merged)
+        elif len(users) > 1:
             raise SuspiciousOperation("Multiple users matched Entra claims.")
+        elif self.get_settings("OIDC_CREATE_USER", True):
+            user = self.create_user(merged)
+        else:
+            LOGGER.warning(
+                "Login failed: no AzureUserProfile for oid=%s and OIDC_CREATE_USER is False",
+                oid,
+            )
+            return None
 
-        if self.get_settings("OIDC_CREATE_USER", True):
-            return self.create_user(merged)
+        profile = AzureUserProfile.objects.get(user=user)
+        try:
+            sync_user_groups(profile, merged, access_token)
+        except Exception as exc:
+            LOGGER.exception("Group sync failed for oid=%s: %s", oid, exc)
 
-        LOGGER.warning(
-            "Login failed: no UserProfile for oid=%s and OIDC_CREATE_USER is False",
-            oid,
-        )
-        return None
+        self._stash_claims_snapshot(merged)
+        return user
 
     def _stash_claims_snapshot(self, claims) -> None:
-        """Store a small, inspectable snapshot (educational / debugging)."""
         request = getattr(self, "request", None)
         if not request or not hasattr(request, "session"):
             return
@@ -125,5 +145,6 @@ class EntraOIDCAuthenticationBackend(OIDCAuthenticationBackend):
             "email": claims.get("email"),
             "preferred_username": claims.get("preferred_username"),
             "groups": groups,
+            "has_group_overage": "groups" in (claims.get("_claim_names") or {}),
         }
         request.session.modified = True

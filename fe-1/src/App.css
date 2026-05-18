@@ -112,3 +112,22 @@ code {
   border-color: #c5d4f7;
   background: #f5f8ff;
 }
+
+.groups-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.groups-table th,
+.groups-table td {
+  border: 1px solid #ddd;
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.groups-table code {
+  word-break: break-all;
+}

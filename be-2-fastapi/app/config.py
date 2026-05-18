@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     fastapi_port: int = 8002
-    fastapi_cors_origins: str = "http://127.0.0.1:5172,http://localhost:5172"
+    fastapi_cors_origins: str = "http://localhost:5172"
 
     azure_ad_tenant_id: str = ""
     azure_ad_client_id: str = ""

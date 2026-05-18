@@ -6,7 +6,10 @@ export default function LoginPage() {
     <main className="page">
       <h1>fe-1 — Django session login</h1>
       <p className="muted">
-        This app talks only to <code>{API_BASE}</code>. Login uses Microsoft via
+        API host: <code>{API_BASE}</code> — open fe-1 at{' '}
+        <code>http://localhost:5171</code> to match Entra’s redirect URI{' '}
+        <code>http://localhost:8001/oidc/callback/</code>.
+        Login uses Microsoft via
         Django (OIDC); the browser stores a <strong>session cookie</strong>, not a JWT.
       </p>
 

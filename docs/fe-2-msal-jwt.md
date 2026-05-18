@@ -6,8 +6,8 @@ Minimal React UI to learn **stateless JWT** authentication with Microsoft Entra 
 
 | App | URL |
 | --- | --- |
-| fe-2 | http://127.0.0.1:5172 |
-| be-2-fastapi | http://127.0.0.1:8002 |
+| fe-2 | http://localhost:5172 |
+| be-2-fastapi | http://localhost:8002 |
 
 ## Entra app registration (SPA)
 
@@ -15,7 +15,7 @@ In addition to the Django **Web** redirect URI, add a **Single-page application*
 
 | Setting | Value |
 | --- | --- |
-| Redirect URI | `http://127.0.0.1:5172` |
+| Redirect URI | `http://localhost:5172` |
 
 Enable **Expose an API** (if not already):
 
@@ -67,14 +67,14 @@ Closing the tab clears sessionStorage. This is different from fe-1’s **HttpOnl
 ## Bearer token requests
 
 ```javascript
-fetch('http://127.0.0.1:8002/me', {
+fetch('http://localhost:8002/me', {
   headers: { Authorization: `Bearer ${accessToken}` },
 })
 ```
 
 - **No** `credentials: 'include'` (no Django session cookie).
 - FastAPI validates JWT on every request (signature, iss, aud, exp, tid).
-- CORS allows `http://127.0.0.1:5172` without cookies.
+- CORS allows `http://localhost:5172` without cookies.
 
 ## Compare fe-1 vs fe-2
 
@@ -100,4 +100,4 @@ Root `.env` (used by docker-compose for fe-2):
 docker compose up --build
 ```
 
-Open http://127.0.0.1:5172 → Login → Dashboard → verify `/me` and `/protected` JSON.
+Open http://localhost:5172 → Login → Dashboard → verify `/me` and `/protected` JSON.

@@ -152,6 +152,11 @@ if _cors:
     CORS_ALLOWED_ORIGINS = _cors
     CORS_ALLOW_CREDENTIALS = True
     CSRF_TRUSTED_ORIGINS = _cors
+    # fe-1 (:5171) → Django (:8001) is cross-site (different ports). Default SameSite=Lax
+    # blocks sessionid on fetch/XHR — use None + Secure for local credentialed API calls.
+    SESSION_COOKIE_SAMESITE = os.environ.get("DJANGO_SESSION_COOKIE_SAMESITE", "None")
+    SESSION_COOKIE_SECURE = os.environ.get("DJANGO_SESSION_COOKIE_SECURE", "1") == "1"
+    SESSION_COOKIE_HTTPONLY = True
 
 
 # --- Django auth / login redirects ---
@@ -168,7 +173,7 @@ LOGIN_REDIRECT_URL = "/accounts/me/"
 LOGIN_REDIRECT_URL_FAILURE = "/accounts/login/?error=1"
 LOGOUT_REDIRECT_URL = os.environ.get(
     "DJANGO_LOGOUT_REDIRECT_URL",
-    "http://127.0.0.1:5171/",
+    "http://localhost:5171/",
 )
 
 # Where Entra should send the browser after `/oauth2/v2.0/logout` (must be registered in Entra if required).
@@ -180,7 +185,7 @@ ALLOW_LOGOUT_GET_METHOD = os.environ.get("DJANGO_ALLOW_LOGOUT_GET", "1") == "1"
 # Safe `next=` targets for /oidc/authenticate/?next=...
 OIDC_REDIRECT_ALLOWED_HOSTS = _csv(
     "OIDC_REDIRECT_ALLOWED_HOSTS",
-    "127.0.0.1,127.0.0.1:5171,localhost,localhost:5171",
+    "localhost,localhost:5171,localhost:8001,127.0.0.1,127.0.0.1:5171",
 )
 
 
@@ -202,7 +207,7 @@ if OIDC_ENABLED:
 
     OIDC_RP_SCOPES = os.environ.get(
         "OIDC_RP_SCOPES",
-        "openid email profile offline_access",
+        "openid email profile offline_access GroupMember.Read.All",
     )
 
     OIDC_USE_NONCE = True
@@ -211,7 +216,8 @@ if OIDC_ENABLED:
     OIDC_OP_LOGOUT_URL_METHOD = "accounts.oidc.provider_logout_url"
 
     # Optional token storage (useful when you later call Microsoft Graph APIs).
-    OIDC_STORE_ACCESS_TOKEN = os.environ.get("OIDC_STORE_ACCESS_TOKEN", "0") == "1"
+    # Required for Microsoft Graph group name resolution after login.
+    OIDC_STORE_ACCESS_TOKEN = os.environ.get("OIDC_STORE_ACCESS_TOKEN", "1") == "1"
     OIDC_STORE_ID_TOKEN = os.environ.get("OIDC_STORE_ID_TOKEN", "0") == "1"
 
     OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = int(
